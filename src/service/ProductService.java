@@ -10,13 +10,14 @@ import java.util.List;
 public class ProductService {
 
     public List<Product> getAllProducts() {
-        List<Product> list = new ArrayList<>();
 
-        try (Connection con = DBConnection.getConnection()) {
+        List<Product> products = new ArrayList<>();
 
-            String query = "SELECT * FROM products";
-            Statement stmt = con.createStatement();
-            ResultSet rs = stmt.executeQuery(query);
+        String query = "SELECT * FROM products";
+
+        try (Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(query);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 Product p = new Product(
@@ -25,14 +26,15 @@ public class ProductService {
                         rs.getDouble("price"),
                         rs.getInt("stock"),
                         rs.getString("description"));
-                list.add(p);
+
+                products.add(p);
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Error fetching products: " + e.getMessage());
         }
 
-        return list;
+        return products;
     }
 
     public Product getProduct(int id) {

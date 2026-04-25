@@ -224,39 +224,6 @@ You should see logs similar to:
 
 ---
 
-## Push This Project to GitHub
-
-Use these commands in project root after creating a repository on GitHub:
-
-```powershell
-git init
-git add .
-git commit -m "Initial commit: Java e-commerce console app"
-git branch -M main
-git remote add origin https://github.com/<your-username>/<your-repo-name>.git
-git push -u origin main
-```
-
-If remote already exists:
-
-```powershell
-git remote set-url origin https://github.com/<your-username>/<your-repo-name>.git
-git push -u origin main
-```
-
-Recommended `.gitignore` entries:
-
-```gitignore
-bin/
-.vscode/
-*.class
-*.log
-```
-
-Do not commit real DB credentials. Prefer environment variables or a local config file excluded from Git.
-
----
-
 ## Future Improvements
 
 - Add password hashing (BCrypt)
@@ -270,6 +237,6 @@ Do not commit real DB credentials. Prefer environment variables or a local confi
 
 ## Author
 
-Maintained by Mayank.
+Maintained by Amit.
 
 If you use this project for learning, feel free to fork and improve it.

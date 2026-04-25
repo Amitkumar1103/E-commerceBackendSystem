@@ -1,11 +1,12 @@
 import java.util.List;
 import java.util.Map;
-
+import java.util.Scanner;
 import model.*;
 import service.*;
 
 public class Main {
     public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
 
         // SERVICES
         ProductService productService = new ProductService();
@@ -41,10 +42,11 @@ public class Main {
                             " Rs." + p.getPrice() +
                             " Stock: " + p.getStock());
         }
-
+        printAIRecommendation(user, productService, orderService, sc);
         // ADD TO CART (edge case)
         cartService.addToCart(cart, 101, 1);
         cartService.addToCart(cart, 102, 100); // exceeds stock
+        cartService.addToCart(cart, 103, 2);
 
         // VIEW CART
         System.out.println("\nCart:");
@@ -55,7 +57,13 @@ public class Main {
         // 🔹 PLACE ORDER (Step 4 - Response based)
         OrderResponse response = orderService.placeOrder(cart, productService, 1, user.getId());
 
-        if (!response.isSuccess()) {
+        if (response.isSuccess()) {
+            order = response.getOrder();
+
+            System.out.println("\nOrder Placed Successfully!");
+            System.out.println("Order ID: " + order.getId());
+            System.out.println("Total: Rs." + order.getTotalAmount());
+        } else {
             System.out.println("DEBUG STATUS: " + response.getStatus());
             System.out.println("\nOrder Failed: " + response.getMessage());
 
@@ -149,6 +157,12 @@ public class Main {
             cartService.viewCart(cart);
         }
 
+        System.out.print("\nEnter Order ID to cancel: ");
+        int cancelId = sc.nextInt();
+
+        orderService.cancelOrder(cancelId);
+        sc.close();
+
         // 🔹 SHOW UPDATED STOCK
         System.out.println("\nUpdated Products:");
         for (Product p : productService.getAllProducts()) {
@@ -157,5 +171,46 @@ public class Main {
                             " Rs." + p.getPrice() +
                             " Stock: " + p.getStock());
         }
+    }
+
+    private static void printAIRecommendation(User user, ProductService productService, OrderService orderService,
+            Scanner sc) {
+        StringBuilder prompt = new StringBuilder();
+        int budget = 50000;
+
+        System.out.print("Enter your budget: ");
+        if (sc.hasNextInt()) {
+            budget = sc.nextInt();
+        } else {
+            System.out.println("Invalid budget input. Using default budget: 50000");
+            if (sc.hasNext()) {
+                sc.next();
+            }
+        }
+
+        prompt.append("User budget: ").append(budget).append("\n\n");
+
+        List<Product> products = productService.getAllProducts();
+        List<String> history = orderService.getUserPurchasedProducts(user.getId());
+
+        prompt.append("User previously bought:\n");
+        for (String h : history) {
+            prompt.append("- ").append(h).append("\n");
+        }
+
+        prompt.append("\nAvailable products:\n");
+        for (Product p : products) {
+            if (p.getStock() > 0) {
+                prompt.append(p.getName())
+                        .append(" - Rs.")
+                        .append(p.getPrice())
+                        .append("\n");
+            }
+        }
+
+        prompt.append("\nSuggest best products based on budget and previous purchases.");
+
+        String aiResponse = AIService.askAI(prompt.toString());
+        System.out.println("\nAI Recommendation:\n" + aiResponse);
     }
 }

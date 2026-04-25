@@ -196,4 +196,115 @@ public class OrderService {
         }
 
     }
+
+    // New method to cancel order and restore stock
+    public boolean cancelOrder(int orderId) {
+
+        Connection con = null;
+
+        try {
+            con = DBConnection.getConnection();
+            con.setAutoCommit(false); // 🔥 start transaction
+
+            // 🔹 Step 1: Check order status
+            String checkQuery = "SELECT status FROM orders WHERE id = ?";
+            PreparedStatement checkStmt = con.prepareStatement(checkQuery);
+            checkStmt.setInt(1, orderId);
+
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (!rs.next()) {
+                System.out.println("Order not found");
+                return false;
+            }
+
+            String status = rs.getString("status");
+
+            if ("CANCELLED".equals(status)) {
+                System.out.println("Order already cancelled");
+                return false;
+            }
+
+            // 🔹 Step 2: Get order items
+            String itemQuery = "SELECT product_id, quantity FROM order_items WHERE order_id = ?";
+            PreparedStatement itemStmt = con.prepareStatement(itemQuery);
+            itemStmt.setInt(1, orderId);
+
+            ResultSet itemRs = itemStmt.executeQuery();
+
+            // 🔹 Step 3: Restore stock
+            while (itemRs.next()) {
+
+                int productId = itemRs.getInt("product_id");
+                int quantity = itemRs.getInt("quantity");
+
+                String updateStock = "UPDATE products SET stock = stock + ? WHERE id = ?";
+                PreparedStatement updateStmt = con.prepareStatement(updateStock);
+
+                updateStmt.setInt(1, quantity);
+                updateStmt.setInt(2, productId);
+
+                updateStmt.executeUpdate();
+            }
+
+            // 🔹 Step 4: Update order status
+            String updateOrder = "UPDATE orders SET status = 'CANCELLED' WHERE id = ?";
+            PreparedStatement updateOrderStmt = con.prepareStatement(updateOrder);
+
+            updateOrderStmt.setInt(1, orderId);
+            updateOrderStmt.executeUpdate();
+
+            con.commit(); // ✅ success
+
+            System.out.println("Order cancelled successfully and stock restored.");
+            return true;
+
+        } catch (Exception e) {
+
+            try {
+                if (con != null)
+                    con.rollback(); // ❌ rollback
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            System.out.println("Cancel failed: " + e.getMessage());
+            return false;
+
+        } finally {
+            try {
+                if (con != null)
+                    con.setAutoCommit(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // New method to fetch user's purchase history for AI recommendations
+    public List<String> getUserPurchasedProducts(int userId) {
+
+        List<String> purchased = new ArrayList<>();
+
+        String query = "SELECT p.name FROM order_items oi " +
+                "JOIN products p ON oi.product_id = p.id " +
+                "JOIN orders o ON oi.order_id = o.id " +
+                "WHERE o.user_id = ?";
+
+        try (Connection con = DBConnection.getConnection();
+                PreparedStatement ps = con.prepareStatement(query)) {
+
+            ps.setInt(1, userId);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                purchased.add(rs.getString("name"));
+            }
+
+        } catch (Exception e) {
+            System.out.println("Error fetching history");
+        }
+
+        return purchased;
+    }
 }
