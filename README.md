@@ -1,119 +1,79 @@
 # Java E-Commerce Console Application
 
-A simple Java + MySQL console-based e-commerce project that demonstrates:
+A Java + MySQL console-based e-commerce project that now includes AI-based product recommendations and a Java 24 run/debug setup.
 
-- User login and registration
+## Features
+
+- User login and auto-registration fallback
 - Product listing and stock management
-- Cart handling (add/view/update quantities)
-- Order placement with transaction support
-- Out-of-stock detection and retry flow
-- User order history
-
-This repository is a good beginner-to-intermediate backend practice project for learning Java OOP, JDBC, and basic transactional workflows.
-
----
-
-## Table of Contents
-
-1. [Project Overview](#project-overview)
-2. [Tech Stack](#tech-stack)
-3. [Project Structure](#project-structure)
-4. [Core Flow](#core-flow)
-5. [Database Setup (MySQL)](#database-setup-mysql)
-6. [Configuration](#configuration)
-7. [How to Run](#how-to-run)
-8. [Sample Output Flow](#sample-output-flow)
-9. [Push This Project to GitHub](#push-this-project-to-github)
-10. [Future Improvements](#future-improvements)
-
----
-
-## Project Overview
-
-The application starts from `Main.java` and simulates a real order process:
-
-1. Tries user login
-2. Registers user if not found
-3. Loads products from DB
-4. Adds products into cart (including a deliberate over-stock case)
-5. Attempts to place an order
-6. If out of stock, adjusts quantities and retries safely
-7. Shows order details, history, cart state, and updated stock
-
-This demonstrates business logic, edge-case handling, and atomic DB updates.
-
----
+- Cart handling with edge-case quantity attempts
+- Order placement with transaction safety
+- Out-of-stock adjustment and safe retry flow
+- Order details and order history display
+- Order cancellation
+- AI recommendation prompt based on budget + purchase history
 
 ## Tech Stack
 
-- Java (console application)
-- JDBC (database access)
+- Java 24 (console app)
+- JDBC
 - MySQL
-- VS Code (or any Java IDE)
-
----
+- VS Code Java tooling
+- MySQL JDBC driver (`lib/mysql-connector-j-9.5.0.jar`)
 
 ## Project Structure
 
 ```text
 JavaProject/
-├── src/
-│   ├── Main.java                  # Main execution flow
-│   ├── App.java                   # Basic hello-world entry class
-│   ├── model/
-│   │   ├── User.java
-│   │   ├── Product.java
-│   │   ├── Cart.java
-│   │   ├── CartItem.java
-│   │   ├── Order.java
-│   │   ├── OrderItem.java
-│   │   ├── OrderResponse.java
-│   │   ├── OrderStatus.java
-│   │   └── StockIssue.java
-│   ├── service/
-│   │   ├── UserService.java
-│   │   ├── ProductService.java
-│   │   ├── CartService.java
-│   │   └── OrderService.java
-│   └── util/
-│       └── DBConnection.java
-├── bin/                           # Compiled classes
-├── lib/                           # External jars (if any)
-└── README.md
+|- .vscode/
+|  |- settings.json
+|  |- launch.json
+|- src/
+|  |- Main.java
+|  |- App.java
+|  |- model/
+|  |  |- User.java
+|  |  |- Product.java
+|  |  |- Cart.java
+|  |  |- CartItem.java
+|  |  |- Order.java
+|  |  |- OrderItem.java
+|  |  |- OrderResponse.java
+|  |  |- OrderStatus.java
+|  |  |- StockIssue.java
+|  |- service/
+|  |  |- UserService.java
+|  |  |- ProductService.java
+|  |  |- CartService.java
+|  |  |- OrderService.java
+|  |  |- AIService.java
+|  |- util/
+|     |- DBConnection.java
+|     |- EnvLoader.java
+|- lib/
+|  |- mysql-connector-j-9.5.0.jar
+|- bin/
+|- .env
+|- README.md
 ```
 
----
+## Core Flow (Main)
 
-## Core Flow
+1. Login user, register if not found
+2. Display available products
+3. Ask for user budget and call AI recommendation flow
+4. Add products to cart (including deliberate over-stock test)
+5. Place order and handle status-based responses
+6. If out of stock, adjust quantities and retry once
+7. Show order details and order history
+8. Ask for order id to cancel
+9. Print updated stock
 
-### UserService
-- `register(name, email, password)` inserts into `users`
-- `login(email, password)` validates credentials
-
-### ProductService
-- `getAllProducts()` fetches product list
-- `getProduct(id)` fetches one product
-- `updateStock(productId, newStock)` updates inventory
-
-### CartService
-- `addToCart(cart, productId, quantity)` adds/increments item quantity
-- `viewCart(cart)` prints cart items
-
-### OrderService
-- Validates cart and stock
-- Uses transaction (`setAutoCommit(false)`) for order + item inserts + stock update
-- Rolls back if something fails
-- Returns `OrderResponse` with status:
-  - `SUCCESS`
-  - `CART_EMPTY`
-  - `OUT_OF_STOCK`
-  - `ERROR`
-
----
+Recent update: input `Scanner` is shared across the flow and closed once in `main`, removing the resource-leak warning.
 
 ## Database Setup (MySQL)
 
-Create the database and tables before running:
+Run the following SQL first:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS ecommerce;
@@ -153,13 +113,13 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 ```
 
-Add some seed products:
+Seed sample products:
 
 ```sql
 INSERT INTO products (id, name, price, stock, description) VALUES
-(101, 'Laptop', 75000, 5, 'Performance laptop'),
-(102, 'Headphones', 2500, 10, 'Wireless headphones'),
-(103, 'Keyboard', 1500, 15, 'Mechanical keyboard')
+(101, 'Laptop', 50000, 10, 'Performance laptop'),
+(102, 'Phone', 20000, 20, 'Smartphone'),
+(103, 'IPHONE', 90000, 64, 'Premium smartphone')
 ON DUPLICATE KEY UPDATE
 name = VALUES(name),
 price = VALUES(price),
@@ -167,15 +127,11 @@ stock = VALUES(stock),
 description = VALUES(description);
 ```
 
----
-
 ## Configuration
 
-Update DB credentials in:
+### 1) Database Credentials
 
-- `src/util/DBConnection.java`
-
-Current default values:
+Update values in `src/util/DBConnection.java`:
 
 ```java
 private static final String URL = "jdbc:mysql://localhost:3306/ecommerce";
@@ -183,60 +139,70 @@ private static final String USER = "root";
 private static final String PASSWORD = "1234";
 ```
 
-Change these according to your local MySQL setup.
+### 2) AI Environment Variables
 
----
+Create/update `.env` in project root (or set OS env vars):
+
+```env
+NVIDIA_API_KEY=your_api_key_here
+NVIDIA_MODEL=google/gemma-3n-e4b-it
+NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
+NVIDIA_CONNECT_TIMEOUT_MS=15000
+NVIDIA_READ_TIMEOUT_MS=90000
+NVIDIA_MAX_RETRIES=2
+```
+
+Notes:
+- API key fallback lookup supports `NVIDIA_API_KEY`, `NVAPI_KEY`.
+- If no key is set, app continues and prints an AI error message string.
+
+## Java Version Requirement
+
+Use Java 24 for both compile and run. Mixing Java 24-compiled classes with Java 21 runtime causes:
+
+`UnsupportedClassVersionError ... class file version 68.0 ... recognizes up to 65.0`
+
+This workspace already includes Java 24-focused setup in `.vscode/settings.json` and `.vscode/launch.json`.
 
 ## How to Run
 
-### Option 1: Run in VS Code
+### Option 1: VS Code (Recommended)
 
-1. Open project folder in VS Code
+1. Open project in VS Code
 2. Ensure Java extension pack is installed
-3. Configure MySQL and DB credentials
-4. Run `Main.java`
+3. Use debug profile: `Run Main (JDK 24)`
 
-### Option 2: Compile and Run from Terminal (PowerShell)
+### Option 2: PowerShell (Explicit Java 24)
 
 From project root:
 
 ```powershell
-javac -d bin src\model\*.java src\service\*.java src\util\*.java src\Main.java
-java -cp bin Main
+Get-ChildItem -Recurse -File bin\*.class | Remove-Item -Force
+$src = Get-ChildItem -Recurse -File src\*.java | ForEach-Object { $_.FullName }
+& 'C:\Program Files\Java\jdk-24\bin\javac.exe' -d bin -cp "lib\mysql-connector-j-9.5.0.jar" $src
+& 'C:\Program Files\Java\jdk-24\bin\java.exe' -cp "bin;lib\mysql-connector-j-9.5.0.jar" Main
 ```
 
-If needed, include the MySQL JDBC driver JAR in classpath.
+## Sample Output Highlights
 
----
-
-## Sample Output Flow
-
-You should see logs similar to:
-
-- User login/register result
-- Available products
-- Cart contents
-- Out-of-stock warning for excessive quantity
-- Retry with adjusted quantity
-- Order placed successfully
-- Order history
-- Updated product stock
-
----
+- User logged in / registered
+- Available products shown
+- Budget prompt and AI recommendation printed
+- Cart shown with stock handling
+- Order placed (or adjusted retry on out-of-stock)
+- Order history printed
+- Cancel order prompt
+- Updated stock printed
 
 ## Future Improvements
 
-- Add password hashing (BCrypt)
-- Add input-driven CLI menu instead of fixed flow in `Main.java`
-- Add validation for email/quantity/price
-- Add unit and integration tests
-- Add Maven/Gradle for dependency management
-- Add REST API layer (Spring Boot)
-
----
+- Add bcrypt password hashing
+- Add menu-driven CLI instead of fixed scripted flow
+- Improve numeric input validation for all prompts
+- Add tests and CI workflow
+- Migrate to Maven/Gradle for dependency management
+- Add REST API layer with Spring Boot
 
 ## Author
 
-Maintained by Amit.
-
-If you use this project for learning, feel free to fork and improve it.
+Maintained by project contributors.
