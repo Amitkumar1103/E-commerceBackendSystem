@@ -205,4 +205,4 @@ $src = Get-ChildItem -Recurse -File src\*.java | ForEach-Object { $_.FullName }
 
 ## Author
 
-Maintained by project contributors.
+Maintained by Amit Kumar.
