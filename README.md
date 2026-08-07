@@ -144,17 +144,19 @@ private static final String PASSWORD = "1234";
 Create/update `.env` in project root (or set OS env vars):
 
 ```env
-NVIDIA_API_KEY=your_api_key_here
-NVIDIA_MODEL=google/gemma-3n-e4b-it
-NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
-NVIDIA_CONNECT_TIMEOUT_MS=15000
-NVIDIA_READ_TIMEOUT_MS=90000
-NVIDIA_MAX_RETRIES=2
+GEMINI_API_KEY=your_api_key_here
+GEMINI_MODEL=gemini-flash-latest
+GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta/models
+GEMINI_CONNECT_TIMEOUT_MS=15000
+GEMINI_READ_TIMEOUT_MS=90000
+GEMINI_MAX_RETRIES=2
 ```
 
 Notes:
-- API key fallback lookup supports `NVIDIA_API_KEY`, `NVAPI_KEY`.
+- API key fallback lookup supports `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `NVIDIA_API_KEY`, and `NVAPI_KEY`.
 - If no key is set, app continues and prints an AI error message string.
+
+Gemini requests are sent as `generateContent` calls with `X-goog-api-key` and a `contents -> parts -> text` payload.
 
 ## Java Version Requirement
 
@@ -166,22 +168,40 @@ This workspace already includes Java 24-focused setup in `.vscode/settings.json`
 
 ## How to Run
 
-### Option 1: VS Code (Recommended)
+### Option 1: Code Runner Extension (Top-Right ▶️ Button)
+1. Ensure the **Code Runner** VS Code extension is installed.
+2. Open `src/Main.java`.
+3. Click the **Play / Run Code** button ▶️ in the top-right corner.
+4. Code Runner will open in your VS Code **Terminal** tab (where input prompts can be entered interactively) and execute with the `lib/` classpath attached automatically.
 
-1. Open project in VS Code
-2. Ensure Java extension pack is installed
-3. Use debug profile: `Run Main (JDK 24)`
+### Option 2: VS Code Java Debugger (Native Run)
+1. Open project in VS Code.
+2. Open `src/Main.java`.
+3. Click **`Run`** above `public static void main(String[] args)` (or press `F5` / `Ctrl + F5`).
 
-### Option 2: PowerShell (Explicit Java 24)
-
-From project root:
+### Option 3: PowerShell / Terminal Command
+From the project root directory:
 
 ```powershell
-Get-ChildItem -Recurse -File bin\*.class | Remove-Item -Force
-$src = Get-ChildItem -Recurse -File src\*.java | ForEach-Object { $_.FullName }
-& 'C:\Program Files\Java\jdk-24\bin\javac.exe' -d bin -cp "lib\mysql-connector-j-9.5.0.jar" $src
+# Compile all source files into bin with MySQL driver classpath
+& 'C:\Program Files\Java\jdk-24\bin\javac.exe' -d bin -cp "lib\mysql-connector-j-9.5.0.jar" src\util\*.java src\model\*.java src\service\*.java src\Main.java
+
+# Run Main class
 & 'C:\Program Files\Java\jdk-24\bin\java.exe' -cp "bin;lib\mysql-connector-j-9.5.0.jar" Main
 ```
+
+---
+
+## Code Execution Preview
+
+![Application Execution](code_execution_screenshot.png)
+
+## Recent Changes & Setup Fixes
+
+- **JDBC Driver Registration**: Added explicit `Class.forName("com.mysql.cj.jdbc.Driver")` static initializer block in `DBConnection.java` to prevent runtime `No suitable driver found` errors.
+- **Code Runner Configuration**: Configured `.vscode/settings.json` with `code-runner.executorMap` and `code-runner.runInTerminal: true` so Code Runner executes in interactive terminal mode with `lib/*` classpath attached.
+- **VS Code Classpath Cleanup**: Fixed `.vscode/settings.json` by removing `lib` from `sourcePaths` and ensuring `referencedLibraries` targets `lib/*.jar`.
+- **Git Ignore Updates**: Added `*.txt` pattern to `.gitignore` to prevent committing scratch notes and interview preparation text files.
 
 ## Sample Output Highlights
 
@@ -206,3 +226,4 @@ $src = Get-ChildItem -Recurse -File src\*.java | ForEach-Object { $_.FullName }
 ## Author
 
 Maintained by Amit Kumar.
+

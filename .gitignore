@@ -24,5 +24,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 
+# Ignore text files
+*.txt
+
 # Ignore specific files
-.env
+.env

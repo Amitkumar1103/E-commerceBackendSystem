@@ -43,6 +43,7 @@ public class Main {
                             " Stock: " + p.getStock());
         }
         printAIRecommendation(user, productService, orderService, sc);
+
         // ADD TO CART (edge case)
         cartService.addToCart(cart, 101, 1);
         cartService.addToCart(cart, 102, 100); // exceeds stock
@@ -54,7 +55,7 @@ public class Main {
 
         Order order = null;
 
-        // 🔹 PLACE ORDER (Step 4 - Response based)
+        // PLACE ORDER (Step 4 - Response based)
         OrderResponse response = orderService.placeOrder(cart, productService, 1, user.getId());
 
         if (response.isSuccess()) {
@@ -67,12 +68,13 @@ public class Main {
             System.out.println("DEBUG STATUS: " + response.getStatus());
             System.out.println("\nOrder Failed: " + response.getMessage());
 
-            // ✅ Only retry for stock issue
+            // Only retry for stock issue
             if (OrderStatus.OUT_OF_STOCK.equals(response.getStatus())) {
 
                 Map<Integer, Integer> stockMap = response.getAvailableStock();
                 if (stockMap == null) {
                     System.out.println("Stock info missing. Cannot retry safely.");
+                    sc.close();
                     return;
                 }
                 for (CartItem item : cart.getItems()) {
@@ -99,6 +101,7 @@ public class Main {
 
                 if (cart.getItems().isEmpty()) {
                     System.out.println("All items out of stock. Cannot place order.");
+                    sc.close();
                     return;
                 }
 
@@ -128,12 +131,12 @@ public class Main {
                 }
 
             } else {
-                // ❌ Do NOT retry for other errors
+                // Do NOT retry for other errors
                 System.out.println("Retry Failed: " + response.getMessage());
             }
         }
 
-        // 🔹 DISPLAY ORDER DETAILS
+        // DISPLAY ORDER DETAILS
         if (order != null) {
             System.out.println("\nOrder Details:");
             for (OrderItem item : order.getItems()) {
@@ -143,7 +146,7 @@ public class Main {
             }
         }
 
-        // 🔹 VERIFY CART STATE AFTER ORDER
+        // VERIFY CART STATE AFTER ORDER
         cart.getItems().removeIf(item -> item.getQuantity() <= 0);
 
         System.out.println("\nCart After Order:");
@@ -163,7 +166,7 @@ public class Main {
         orderService.cancelOrder(cancelId);
         sc.close();
 
-        // 🔹 SHOW UPDATED STOCK
+        // SHOW UPDATED STOCK
         System.out.println("\nUpdated Products:");
         for (Product p : productService.getAllProducts()) {
             System.out.println(
